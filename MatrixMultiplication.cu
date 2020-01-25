@@ -4,6 +4,12 @@
 #include <curand_kernel.h>
 #include <time.h>
 
+enum comptuationDevice{
+    dev_both,
+    dev_gpu,
+    dev_cpu
+};
+
 /*Data structure, which holds a pointer to the elements 
 of the matrix, and the number of rows/columns*/
 struct squareMatrix{
@@ -105,7 +111,7 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     //printSquareMatrix(mat_results);
 }
 
-__host__ void testMatrixMultiplicationPreformance(int dimension){
+__host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev){
 
     squareMatrix mat_a, mat_b;
     
@@ -115,18 +121,25 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     //printSquareMatrix(mat_a);
     //printSquareMatrix(mat_b);
 
-    testHostPreformance(mat_a, mat_b);
-    testDevicePreformance(mat_a, mat_b);
+    if (computeDev != dev_cpu) testHostPreformance(mat_a, mat_b);
+    if (computeDev != dev_gpu) testDevicePreformance(mat_a, mat_b);
 
     free(mat_a.elements);
     free(mat_b.elements);
 }
 
 
-int main(void) {
+int main(int argc, char** argv) {
+
+    comptuationDevice computeDev = dev_both; 
+
+    for (int i = 0; i < argc; i++){
+        if (strcmp(argv[i],  "--device=gpu")) computeDev = dev_gpu;
+        if (strcmp(argv[i],  "--device=cpu"))  computeDev = dev_cpu;
+    }
 
     for (int i = 16; i < 8193; i*=2 )
-        testMatrixMultiplicationPreformance(i);
+        testMatrixMultiplicationPreformance(i, computeDev);
 
 	return 0;
 }
