@@ -15,7 +15,7 @@ __host__ squareMatrix createRandomSquareMatrix(int dimension){
     int  mat_elements = dimension * dimension;
     int* mat = (int*)malloc(sizeof(int)*mat_elements);
     for (int i = 0; i < mat_elements; i++)
-        mat[i] = rand()%2;
+        mat[i] = rand()%10;
     return {mat, dimension};
 }
 
@@ -42,13 +42,18 @@ __host__ squareMatrix multiplyMatrices(squareMatrix a, squareMatrix b){
 }
 
 __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_results, int dimension){
-    mat_results[0] = mat_b[0] + mat_a[0];
+    int idx = blockDim.x * threadIdx.y + threadIdx.x;
+
+    mat_results[idx] = 0;
+    for (int i = 0; i < blockDim.x; i++){
+        mat_results[idx] += mat_a[i + blockDim.x * threadIdx.y] * mat_b[threadIdx.x + blockDim.x * i];
+    }
 }
 
-__host__ void printTime(clock_t totaltime, int dimension){
+__host__ void printTime(clock_t totaltime, int dimension, char* type){
     int msec = totaltime * 1000 / CLOCKS_PER_SEC;
-    printf("Multiplying %dx%d X %dx%d took %d msec using the CPU\n--------------------------------------------------------------------------------------------\n", 
-    dimension, dimension, dimension, dimension, msec);
+    printf("Multiplying %dx%d X %dx%d took %d msec using the %s\n--------------------------------------------------------------------------------------------\n", 
+    dimension, dimension, dimension, dimension, msec, type);
 }
 
 /*
@@ -70,7 +75,7 @@ __host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
         
     clock_t before = clock();
     mat_results = multiplyMatrices(mat_a, mat_b);
-    printTime(clock() - before, mat_results.dimension);
+    printTime(clock() - before, mat_results.dimension, (char*)"CPU");
 }
 
 __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
@@ -89,10 +94,14 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
 
     clock_t before = clock();
-    multiplyMatricesParallel<<<1,1024>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
+    dim3 dimBlock(mat_a.dimension, mat_a.dimension);
+    dim3 dimGrid(mat_a.dimension, mat_a.dimension);
+    multiplyMatricesParallel<<<dimGrid, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
 
     gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
-    printTime(clock() - before, mat_results.dimension);
+    printTime(clock() - before, mat_results.dimension, "GPU");
+    
+    //printSquareMatrix(mat_results);
 }
 
 __host__ void testMatrixMultiplicationPreformance(int dimension){
@@ -102,7 +111,10 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     mat_a = createRandomSquareMatrix(dimension);
     mat_b = createRandomSquareMatrix(dimension);
 
-    testHostPreformance(mat_a, mat_b);
+    //printSquareMatrix(mat_a);
+    //printSquareMatrix(mat_b);
+
+    //testHostPreformance(mat_a, mat_b);
     testDevicePreformance(mat_a, mat_b);
 
     free(mat_a.elements);
@@ -112,7 +124,7 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
 
 int main(void) {
 
-    for (int i = 16; i < 1025; i*=2 )
+    for (int i = 15000; i < 1024*1024; i*=2 )
         testMatrixMultiplicationPreformance(i);
 
 	return 0;
