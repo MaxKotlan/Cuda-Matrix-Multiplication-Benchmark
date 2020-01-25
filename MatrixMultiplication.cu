@@ -42,7 +42,7 @@ __host__ squareMatrix multiplyMatrices(squareMatrix a, squareMatrix b){
 }
 
 __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_results, int dimension){
-    
+    mat_results[0] = mat_b[0] + mat_a[0];
 }
 
 __host__ void printTime(clock_t totaltime, int dimension){
@@ -65,35 +65,48 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-__host__ void testMatrixMultiplicationPreformance(int dimension){
-
-    squareMatrix        mat_a,        mat_b,        mat_results;
-    squareMatrix device_mat_a, device_mat_b, device_mat_results;
-    
-    mat_a = createRandomSquareMatrix(dimension);
-    mat_b = createRandomSquareMatrix(dimension);
-    
+__host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
+    squareMatrix mat_results;
+        
     clock_t before = clock();
     mat_results = multiplyMatrices(mat_a, mat_b);
     printTime(clock() - before, mat_results.dimension);
+}
 
+__host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
+    if (mat_a.dimension != mat_b.dimension) exit(1);
+    int allocationsize = mat_a.dimension * mat_b.dimension * sizeof(int);
 
-    gpuErrchk(cudaMalloc(&device_mat_a.elements, dimension*dimension*sizeof(int)));
-    gpuErrchk(cudaMalloc(&device_mat_b.elements, dimension*dimension*sizeof(int)));
-    gpuErrchk(cudaMalloc(&device_mat_results.elements, dimension*dimension*sizeof(int)));
+    squareMatrix mat_results = {(int*)malloc(allocationsize), mat_a.dimension};
+
+    int* dev_mat_a, *dev_mat_b, *dev_mat_results;
+
+    gpuErrchk(cudaMalloc((void **)&dev_mat_a,          allocationsize));
+    gpuErrchk(cudaMalloc((void **)&dev_mat_b,          allocationsize));
+    gpuErrchk(cudaMalloc((void **)&dev_mat_results,    allocationsize));
     
-    gpuErrchk(cudaMemcpy(device_mat_a.elements, &mat_a.elements, dimension*dimension*sizeof(int), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(device_mat_a.elements, &mat_b.elements, dimension*dimension*sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(dev_mat_a, mat_a.elements, allocationsize, cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
 
-    multiplyMatricesParallel<<<1,1024>>> (device_mat_a.elements, device_mat_b.elements, device_mat_results.elements, dimension);
+    clock_t before = clock();
+    multiplyMatricesParallel<<<1,1024>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
 
-    free(mat_results.elements);
-    gpuErrchk(cudaMemcpy(&device_mat_results.elements, mat_results.elements, dimension*dimension*sizeof(int), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
+    printTime(clock() - before, mat_results.dimension);
+}
 
+__host__ void testMatrixMultiplicationPreformance(int dimension){
+
+    squareMatrix mat_a, mat_b;
+    
+    mat_a = createRandomSquareMatrix(dimension);
+    mat_b = createRandomSquareMatrix(dimension);
+
+    testHostPreformance(mat_a, mat_b);
+    testDevicePreformance(mat_a, mat_b);
 
     free(mat_a.elements);
     free(mat_b.elements);
-    free(mat_results.elements);
 }
 
 
