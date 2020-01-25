@@ -86,6 +86,8 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
 
     int* dev_mat_a, *dev_mat_b, *dev_mat_results;
 
+    clock_t before = clock();
+
     gpuErrchk(cudaMalloc((void **)&dev_mat_a,          allocationsize));
     gpuErrchk(cudaMalloc((void **)&dev_mat_b,          allocationsize));
     gpuErrchk(cudaMalloc((void **)&dev_mat_results,    allocationsize));
@@ -93,7 +95,6 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     gpuErrchk(cudaMemcpy(dev_mat_a, mat_a.elements, allocationsize, cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
 
-    clock_t before = clock();
     dim3 dimBlock(mat_a.dimension, mat_a.dimension);
     dim3 dimGrid(mat_a.dimension, mat_a.dimension);
     multiplyMatricesParallel<<<dimGrid, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
@@ -124,7 +125,7 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
 
 int main(void) {
 
-    for (int i = 15000; i < 1024*1024; i*=2 )
+    for (int i = 16; i < 8193; i*=2 )
         testMatrixMultiplicationPreformance(i);
 
 	return 0;
