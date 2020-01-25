@@ -2,6 +2,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
+#include <time.h>
 
 __global__ void kernel(void){
 
@@ -44,14 +45,19 @@ __host__ squareMatrix multiplyMatrices(squareMatrix a, squareMatrix b){
 
 int main(void) {
 
-    squareMatrix mat_a = createRandomSquareMatrix(10);
-    squareMatrix mat_b = createRandomSquareMatrix(10);
+    squareMatrix mat_a = createRandomSquareMatrix(1000);
+    squareMatrix mat_b = createRandomSquareMatrix(1000);
 
-    printSquareMatrix(mat_a);
-    printSquareMatrix(mat_b);
+    //printSquareMatrix(mat_a);
+    //printSquareMatrix(mat_b);
 
+    clock_t before = clock();
     squareMatrix mat_c = multiplyMatrices(mat_a, mat_b);
-    printSquareMatrix(mat_c);
+    clock_t totaltime = clock() - before;
+    int msec = totaltime * 1000 / CLOCKS_PER_SEC;
+    printf("%d msec", msec);
+
+    //printSquareMatrix(mat_c);
 
     kernel<<<1,1>>> ();
     //printf("Hello World\n");
