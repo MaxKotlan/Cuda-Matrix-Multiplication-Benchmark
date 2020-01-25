@@ -115,7 +115,7 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     //printSquareMatrix(mat_a);
     //printSquareMatrix(mat_b);
 
-    //testHostPreformance(mat_a, mat_b);
+    testHostPreformance(mat_a, mat_b);
     testDevicePreformance(mat_a, mat_b);
 
     free(mat_a.elements);
