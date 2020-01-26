@@ -115,36 +115,59 @@ __host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
 }
 
 __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
+    printMatrixInfo(mat_a.dimension, (char*)"CPU");
+    clock_t initalTime = clock();
+
     if (mat_a.dimension != mat_b.dimension) exit(1);
+    
     int allocationsize = mat_a.dimension * mat_b.dimension * sizeof(int);
 
-    squareMatrix mat_results = {(int*)malloc(allocationsize), mat_a.dimension};
+    printf("\tAllocating Result Matrix To RAM... ");
+    clock_t before = clock();
+        squareMatrix mat_results = {(int*)malloc(allocationsize), mat_a.dimension};
+    printTime(clock() - before);
 
     int* dev_mat_a, *dev_mat_b, *dev_mat_results;
 
-    clock_t before = clock();
+    printf("\tAllocating A, B, and RESULT Matrix To VRAM... ");
+    before = clock();
+        gpuErrchk(cudaMalloc((void **)&dev_mat_a,          allocationsize));
+        gpuErrchk(cudaMalloc((void **)&dev_mat_b,          allocationsize));
+        gpuErrchk(cudaMalloc((void **)&dev_mat_results,    allocationsize));
+    printTime(clock() - before);
 
-    gpuErrchk(cudaMalloc((void **)&dev_mat_a,          allocationsize));
-    gpuErrchk(cudaMalloc((void **)&dev_mat_b,          allocationsize));
-    gpuErrchk(cudaMalloc((void **)&dev_mat_results,    allocationsize));
-    
-    gpuErrchk(cudaMemcpy(dev_mat_a, mat_a.elements, allocationsize, cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
+    printf("\tCopying A, B To VRAM... ");
+    before = clock();
+        gpuErrchk(cudaMemcpy(dev_mat_a, mat_a.elements, allocationsize, cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
+    printTime(clock() - before);
 
-    dim3 dimBlock(mat_a.dimension, mat_a.dimension);
-    dim3 dimGrid(mat_a.dimension, mat_a.dimension);
-    multiplyMatricesParallel<<<dimGrid, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
 
-    gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
-    printTime(clock() - before, mat_results.dimension, "GPU");
+    printf("\tComputing Result... ");
+    before = clock();
+        dim3 dimBlock(mat_a.dimension, mat_a.dimension);
+        dim3 dimGrid(mat_a.dimension, mat_a.dimension);
+        multiplyMatricesParallel<<<dimGrid, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
+    printTime(clock() - before);
+
+    printf("\tCopying Result... ");
+    before = clock();
+        gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
+    printTime(clock() - before);
     
     /*
     if (mat_results.dimension < 17){
         printSquareMatrix(mat_results);
     } */
 
-    cudaFree(dev_mat_a); cudaFree(dev_mat_b); cudaFree(dev_mat_results);
-    free(mat_results.elements);
+    printf("\tDeallocating Result Matrix... ");
+    before = clock();
+        cudaFree(dev_mat_a); cudaFree(dev_mat_b); cudaFree(dev_mat_results);
+        free(mat_results.elements);
+    printTime(clock() - before);
+
+    printf("\nTotal Time: ");
+    printTime(clock() - initalTime);
 }
 
 __host__ void testMatrixMultiplicationPreformance(int dimension){
