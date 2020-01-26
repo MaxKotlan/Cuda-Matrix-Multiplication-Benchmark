@@ -62,7 +62,7 @@ __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_result
 }
 
 __host__ void printMatrixInfo(int dimension, char* type){
-    printf("--------------------------------------------------------------------------------------------\nMultiplying %dx%d X %dx%d using the %s ...\n", 
+    printf("--------------------------------------------------------------------------------------------\nMultiplying %dx%d X %dx%d using the %s ...\n\n", 
     dimension, dimension, dimension, dimension, type);
 }
 
@@ -115,52 +115,43 @@ __host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
 }
 
 __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
-    printMatrixInfo(mat_a.dimension, (char*)"CPU");
+    printMatrixInfo(mat_a.dimension, (char*)"GPU");
     clock_t initalTime = clock();
 
     if (mat_a.dimension != mat_b.dimension) exit(1);
     
     int allocationsize = mat_a.dimension * mat_b.dimension * sizeof(int);
 
-    printf("\tAllocating Result Matrix To RAM... ");
+    printf("\tAllocating Result Matrix To RAM...               ");
     clock_t before = clock();
         squareMatrix mat_results = {(int*)malloc(allocationsize), mat_a.dimension};
     printTime(clock() - before);
 
     int* dev_mat_a, *dev_mat_b, *dev_mat_results;
 
-    printf("\tAllocating A, B, and RESULT Matrix To VRAM... ");
+    printf("\tAllocating A, B, and RESULT Matrix To VRAM...    ");
     before = clock();
         gpuErrchk(cudaMalloc((void **)&dev_mat_a,          allocationsize));
         gpuErrchk(cudaMalloc((void **)&dev_mat_b,          allocationsize));
         gpuErrchk(cudaMalloc((void **)&dev_mat_results,    allocationsize));
     printTime(clock() - before);
 
-    printf("\tCopying A, B To VRAM... ");
+    printf("\tCopying A, B To VRAM...                          ");
     before = clock();
         gpuErrchk(cudaMemcpy(dev_mat_a, mat_a.elements, allocationsize, cudaMemcpyHostToDevice));
         gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
     printTime(clock() - before);
 
 
-    printf("\tComputing Result... ");
+    printf("\tComputing and Copying Result...                  ");
     before = clock();
         dim3 dimBlock(mat_a.dimension, mat_a.dimension);
         dim3 dimGrid(mat_a.dimension, mat_a.dimension);
         multiplyMatricesParallel<<<dimGrid, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
-    printTime(clock() - before);
-
-    printf("\tCopying Result... ");
-    before = clock();
         gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
     printTime(clock() - before);
-    
-    /*
-    if (mat_results.dimension < 17){
-        printSquareMatrix(mat_results);
-    } */
 
-    printf("\tDeallocating Result Matrix... ");
+    printf("\tDeallocating Result Matrix...                    ");
     before = clock();
         cudaFree(dev_mat_a); cudaFree(dev_mat_b); cudaFree(dev_mat_results);
         free(mat_results.elements);
