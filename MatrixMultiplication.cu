@@ -123,8 +123,8 @@ __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev)
     //printSquareMatrix(mat_a);
     //printSquareMatrix(mat_b);
 
-    if (computeDev != dev_cpu) testHostPreformance(mat_a, mat_b);
-    if (computeDev != dev_gpu) testDevicePreformance(mat_a, mat_b);
+    if (computeDev != dev_gpu) testHostPreformance(mat_a, mat_b);
+    if (computeDev != dev_cpu) testDevicePreformance(mat_a, mat_b);
 
     free(mat_a.elements);
     free(mat_b.elements);
@@ -135,9 +135,11 @@ int main(int argc, char** argv) {
     comptuationDevice computeDev = dev_both; 
 
     for (int i = 0; i < argc; i++){
-        if (strcmp(argv[i],  "--device=gpu")) computeDev = dev_gpu;
-        if (strcmp(argv[i],  "--device=cpu"))  computeDev = dev_cpu;
+        if (strcmp(argv[i],  "--device=gpu")==0)  computeDev = dev_gpu;
+        if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
     }
+
+    printf("Device Config: %d", computeDev);
 
     for (int i = 16; i < 8193*10; i*=2 )
         testMatrixMultiplicationPreformance(i, computeDev);
