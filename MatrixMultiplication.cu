@@ -13,6 +13,7 @@ enum comptuationDevice{
 struct Startup{
     comptuationDevice device = dev_gpu;
     int randomMod = 2;
+    int maxDimension = INT_MAX;
 } startup;
 
 
@@ -166,13 +167,15 @@ int main(int argc, char** argv) {
             else if (strcmp(argv[i+1], "cpu") == 0) startup.device = dev_cpu;
             else if (strcmp(argv[i+1], "both") == 0) startup.device = dev_both;
         if (strcmp(argv[i],  "--random_mod")==0 && i+1 < argc) startup.randomMod = atoi(argv[i+1]);
+        if (strcmp(argv[i],  "--max_dimension")==0 && i+1 < argc) startup.maxDimension = atoi(argv[i+1]);
+        
 
         //if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
         //if (strcmp(argv[i],  "--device=both")==0)  computeDev = dev_both;
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
-    for (int i = 2; i != maxMatrixDimension*2; i*=2 ) {
+    for (int i = 2; i != maxMatrixDimension*2 && i < startup.maxDimension; i*=2 ) {
         maxMatrixDimension = calculateLargestPossibleMatrixDimension();
         if (i > maxMatrixDimension)
             i = maxMatrixDimension;
