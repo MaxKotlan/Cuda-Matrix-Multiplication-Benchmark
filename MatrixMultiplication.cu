@@ -10,15 +10,14 @@ enum comptuationDevice{
     dev_cpu
 };
 
+/*Global Startup Settings*/
 struct Startup{
     comptuationDevice device = dev_gpu;
     int randomMod = 2;
     int maxDimension = INT_MAX;
 } startup;
 
-
-/*Data structure, which holds a pointer to the elements 
-of the matrix, and the number of rows/columns*/
+/*Matrix Datastructure*/
 struct squareMatrix{
     int* elements;
     int dimension;
@@ -95,22 +94,22 @@ __host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
     printMatrixInfo(mat_a.dimension, (char*)"CPU");
     clock_t initalTime = clock();
 
-    printf("\tAllocating Result Matrix To Ram... ");
+    printf("\tAllocating Result Matrix To Ram...               ");
     clock_t before = clock();
     squareMatrix mat_results = {(int*)malloc(sizeof(int)*mat_a.dimension*mat_a.dimension), mat_a.dimension};
     printTime(clock() - before);
 
     before = clock();
-    printf("\tPreforming Multiplication... ");
+    printf("\tPreforming Multiplication...                     ");
     multiplyMatrices(mat_a, mat_b, mat_results);
     printTime(clock() - before);
 
-    printf("\tDeallocating Result Matrix From Ram... ");
+    printf("\tDeallocating Result Matrix From Ram...           ");
     before = clock();
     free(mat_results.elements);
     printTime(clock() - before);
 
-    printf("\nTotal Time: ");
+    printf("\nTotal Time:                                      ");
     printTime(clock() - initalTime);
 }
 
@@ -200,10 +199,6 @@ int main(int argc, char** argv) {
             else if (strcmp(argv[i+1], "both") == 0) startup.device = dev_both;
         if (strcmp(argv[i],  "--random_mod")==0 && i+1 < argc) startup.randomMod = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--max_dimension")==0 && i+1 < argc) startup.maxDimension = atoi(argv[i+1]);
-        
-
-        //if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
-        //if (strcmp(argv[i],  "--device=both")==0)  computeDev = dev_both;
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
@@ -213,6 +208,6 @@ int main(int argc, char** argv) {
             i = maxMatrixDimension;
         testMatrixMultiplicationPreformance(i);
     }
-
+    
 	return 0;
 }
