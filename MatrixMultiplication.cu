@@ -108,9 +108,13 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
     printTime(clock() - before, mat_results.dimension, "GPU");
     
+    /*
+    if (mat_results.dimension < 17){
+        printSquareMatrix(mat_results);
+    } */
+
     cudaFree(dev_mat_a); cudaFree(dev_mat_b); cudaFree(dev_mat_results);
     free(mat_results.elements);
-    //printSquareMatrix(mat_results);
 }
 
 __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev){
@@ -122,8 +126,10 @@ __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev)
     mat_a = createRandomSquareMatrix(dimension);
     mat_b = createRandomSquareMatrix(dimension);
 
-    //printSquareMatrix(mat_a);
-    //printSquareMatrix(mat_b);
+    /*if (dimension < 17){
+        printSquareMatrix(mat_a);
+        printSquareMatrix(mat_b);
+    }*/
 
     if (computeDev != dev_gpu) testHostPreformance(mat_a, mat_b);
     if (computeDev != dev_cpu) testDevicePreformance(mat_a, mat_b);
@@ -148,15 +154,17 @@ __host__ unsigned int calculateLargestPossibleMatrixDimension(){
 
 int main(int argc, char** argv) {
 
-    comptuationDevice computeDev = dev_both; 
+    comptuationDevice computeDev = dev_gpu; 
 
     for (int i = 0; i < argc; i++){
         if (strcmp(argv[i],  "--device=gpu")==0)  computeDev = dev_gpu;
         if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
+        if (strcmp(argv[i],  "--device=both")==0)  computeDev = dev_both;
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
-    for (int i = 16; i != maxMatrixDimension*2; i*=2 ) {
+    for (int i = 2; i != maxMatrixDimension*2; i*=2 ) {
+        maxMatrixDimension = calculateLargestPossibleMatrixDimension();
         if (i > maxMatrixDimension)
             i = maxMatrixDimension;
         testMatrixMultiplicationPreformance(i, computeDev);
