@@ -108,6 +108,8 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
     printTime(clock() - before, mat_results.dimension, "GPU");
     
+    cudaFree(dev_mat_a); cudaFree(dev_mat_b); cudaFree(dev_mat_results);
+    free(mat_results.elements);
     //printSquareMatrix(mat_results);
 }
 
@@ -128,7 +130,6 @@ __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev)
     free(mat_b.elements);
 }
 
-
 int main(int argc, char** argv) {
 
     comptuationDevice computeDev = dev_both; 
@@ -138,7 +139,7 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--device=cpu"))  computeDev = dev_cpu;
     }
 
-    for (int i = 16; i < 8193; i*=2 )
+    for (int i = 16; i < 8193*10; i*=2 )
         testMatrixMultiplicationPreformance(i, computeDev);
 
 	return 0;
