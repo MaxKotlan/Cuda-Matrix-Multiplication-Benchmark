@@ -14,6 +14,7 @@ enum comptuationDevice{
 struct Startup{
     comptuationDevice device = dev_gpu;
     int randomMod = 2;
+    int seedValue = time(nullptr);
     int maxDimension = INT_MAX;
 } startup;
 
@@ -63,12 +64,6 @@ __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_result
 __host__ void printMatrixInfo(int dimension, char* type){
     printf("--------------------------------------------------------------------------------------------\nMultiplying %dx%d X %dx%d using the %s ...\n\n", 
     dimension, dimension, dimension, dimension, type);
-}
-
-__host__ void printTime(clock_t totaltime, int dimension, char* type){
-    int msec = totaltime * 1000 / CLOCKS_PER_SEC;
-    printf("Multiplying %dx%d X %dx%d took %d msec using the %s\n--------------------------------------------------------------------------------------------\n", 
-    dimension, dimension, dimension, dimension, msec, type);
 }
 
 __host__ void printTime(clock_t totaltime){
@@ -146,9 +141,12 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     before = clock();
         dim3 dimBlock(mat_a.dimension, mat_a.dimension);
         dim3 dimGrid(mat_a.dimension, mat_a.dimension);
-        multiplyMatricesParallel<<<dimGrid, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
+        multiplyMatricesParallel<<<1, dimBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
+        gpuErrchk(cudaGetLastError());
         gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
     printTime(clock() - before);
+
+    printSquareMatrix(mat_results);
 
     printf("\tDeallocating Result Matrix...                    ");
     before = clock();
@@ -162,7 +160,7 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
 
 __host__ void testMatrixMultiplicationPreformance(int dimension){
 
-    srand(time(nullptr));
+    srand(startup.seedValue);
 
     squareMatrix mat_a, mat_b;
     
@@ -199,6 +197,7 @@ int main(int argc, char** argv) {
             else if (strcmp(argv[i+1], "both") == 0) startup.device = dev_both;
         if (strcmp(argv[i],  "--random_mod")==0 && i+1 < argc) startup.randomMod = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--max_dimension")==0 && i+1 < argc) startup.maxDimension = atoi(argv[i+1]);
+        if (strcmp(argv[i],  "--seed")==0 && i+1 < argc) startup.seedValue = atoi(argv[i+1]);
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
