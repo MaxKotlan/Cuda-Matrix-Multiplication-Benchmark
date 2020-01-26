@@ -10,6 +10,12 @@ enum comptuationDevice{
     dev_cpu
 };
 
+struct Startup{
+    comptuationDevice device = dev_gpu;
+    int randomMod = 2;
+} startup;
+
+
 /*Data structure, which holds a pointer to the elements 
 of the matrix, and the number of rows/columns*/
 struct squareMatrix{
@@ -21,7 +27,7 @@ __host__ squareMatrix createRandomSquareMatrix(int dimension){
     int  mat_elements = dimension * dimension;
     int* mat = (int*)malloc(sizeof(int)*mat_elements);
     for (int i = 0; i < mat_elements; i++)
-        mat[i] = rand()%2;
+        mat[i] = rand()%startup.randomMod;
     return {mat, dimension};
 }
 
@@ -117,7 +123,7 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     free(mat_results.elements);
 }
 
-__host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev){
+__host__ void testMatrixMultiplicationPreformance(int dimension){
 
     srand(time(nullptr));
 
@@ -126,13 +132,13 @@ __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev)
     mat_a = createRandomSquareMatrix(dimension);
     mat_b = createRandomSquareMatrix(dimension);
 
-    /*if (dimension < 17){
+    if (dimension < 17){
         printSquareMatrix(mat_a);
         printSquareMatrix(mat_b);
-    }*/
+    }
 
-    if (computeDev != dev_gpu) testHostPreformance(mat_a, mat_b);
-    if (computeDev != dev_cpu) testDevicePreformance(mat_a, mat_b);
+    if (startup.device != dev_cpu) testDevicePreformance(mat_a, mat_b);
+    if (startup.device != dev_gpu) testHostPreformance(mat_a, mat_b);
 
     free(mat_a.elements);
     free(mat_b.elements);
@@ -154,12 +160,15 @@ __host__ unsigned int calculateLargestPossibleMatrixDimension(){
 
 int main(int argc, char** argv) {
 
-    comptuationDevice computeDev = dev_gpu; 
-
     for (int i = 0; i < argc; i++){
-        if (strcmp(argv[i],  "--device=gpu")==0)  computeDev = dev_gpu;
-        if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
-        if (strcmp(argv[i],  "--device=both")==0)  computeDev = dev_both;
+        if (strcmp(argv[i],  "--device")==0 && i+1 < argc) 
+            if (strcmp(argv[i+1], "gpu") == 0) startup.device = dev_gpu;
+            else if (strcmp(argv[i+1], "cpu") == 0) startup.device = dev_cpu;
+            else if (strcmp(argv[i+1], "both") == 0) startup.device = dev_both;
+        if (strcmp(argv[i],  "--random_mod")==0 && i+1 < argc) startup.randomMod = atoi(argv[i+1]);
+
+        //if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
+        //if (strcmp(argv[i],  "--device=both")==0)  computeDev = dev_both;
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
@@ -167,7 +176,7 @@ int main(int argc, char** argv) {
         maxMatrixDimension = calculateLargestPossibleMatrixDimension();
         if (i > maxMatrixDimension)
             i = maxMatrixDimension;
-        testMatrixMultiplicationPreformance(i, computeDev);
+        testMatrixMultiplicationPreformance(i);
     }
 
 	return 0;
