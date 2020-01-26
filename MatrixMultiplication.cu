@@ -40,9 +40,8 @@ __host__ void printSquareMatrix(squareMatrix mat){
     printf("\n\n");
 }
 
-__host__ squareMatrix multiplyMatrices(squareMatrix a, squareMatrix b){
+__host__ void multiplyMatrices(squareMatrix a, squareMatrix b, squareMatrix result){
     if (a.dimension != b.dimension) exit(1);
-    squareMatrix result = { (int*)malloc(sizeof(int)*a.dimension*a.dimension), a.dimension };
     
     for (int i = 0; i < result.dimension; i++){
         for (int j = 0; j < result.dimension; j++){
@@ -51,7 +50,6 @@ __host__ squareMatrix multiplyMatrices(squareMatrix a, squareMatrix b){
                 result.elements[j + result.dimension*i] += a.elements[k + result.dimension*i] * b.elements[j + result.dimension*k];
         }
     }
-    return result;
 }
 
 __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_results, int dimension){
@@ -63,10 +61,20 @@ __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_result
     }
 }
 
+__host__ void printMatrixInfo(int dimension, char* type){
+    printf("--------------------------------------------------------------------------------------------\nMultiplying %dx%d X %dx%d using the %s ...\n", 
+    dimension, dimension, dimension, dimension, type);
+}
+
 __host__ void printTime(clock_t totaltime, int dimension, char* type){
     int msec = totaltime * 1000 / CLOCKS_PER_SEC;
     printf("Multiplying %dx%d X %dx%d took %d msec using the %s\n--------------------------------------------------------------------------------------------\n", 
     dimension, dimension, dimension, dimension, msec, type);
+}
+
+__host__ void printTime(clock_t totaltime){
+    int msec = totaltime * 1000 / CLOCKS_PER_SEC;
+    printf("Done in %d msec!\n", msec);
 }
 
 /*
@@ -84,11 +92,26 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 __host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
-    squareMatrix mat_results;
-        
+    printMatrixInfo(mat_a.dimension, (char*)"CPU");
+    clock_t initalTime = clock();
+
+    printf("\tAllocating Result Matrix To Ram... ");
     clock_t before = clock();
-    mat_results = multiplyMatrices(mat_a, mat_b);
-    printTime(clock() - before, mat_results.dimension, (char*)"CPU");
+    squareMatrix mat_results = {(int*)malloc(sizeof(int)*mat_a.dimension*mat_a.dimension), mat_a.dimension};
+    printTime(clock() - before);
+
+    before = clock();
+    printf("\tPreforming Multiplication... ");
+    multiplyMatrices(mat_a, mat_b, mat_results);
+    printTime(clock() - before);
+
+    printf("\tDeallocating Result Matrix From Ram... ");
+    before = clock();
+    free(mat_results.elements);
+    printTime(clock() - before);
+
+    printf("\nTotal Time: ");
+    printTime(clock() - initalTime);
 }
 
 __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
@@ -132,11 +155,6 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     
     mat_a = createRandomSquareMatrix(dimension);
     mat_b = createRandomSquareMatrix(dimension);
-
-    if (dimension < 17){
-        printSquareMatrix(mat_a);
-        printSquareMatrix(mat_b);
-    }
 
     if (startup.device != dev_cpu) testDevicePreformance(mat_a, mat_b);
     if (startup.device != dev_gpu) testHostPreformance(mat_a, mat_b);
