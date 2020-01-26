@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <cuda.h>
-#include <cuda_runtime.h>
-#include <curand_kernel.h>
+//#include <cuda_runtime.h>
+//#include <curand_kernel.h>
 #include <time.h>
 
 enum comptuationDevice{
@@ -21,7 +21,7 @@ __host__ squareMatrix createRandomSquareMatrix(int dimension){
     int  mat_elements = dimension * dimension;
     int* mat = (int*)malloc(sizeof(int)*mat_elements);
     for (int i = 0; i < mat_elements; i++)
-        mat[i] = rand()%10;
+        mat[i] = rand()%2;
     return {mat, dimension};
 }
 
@@ -115,6 +115,8 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
 
 __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev){
 
+    srand(time(nullptr));
+
     squareMatrix mat_a, mat_b;
     
     mat_a = createRandomSquareMatrix(dimension);
@@ -130,6 +132,20 @@ __host__ void testMatrixMultiplicationPreformance(int dimension, int computeDev)
     free(mat_b.elements);
 }
 
+unsigned int getFreeGpuMem()
+{
+    size_t free_t;
+    cudaMemGetInfo(&free_t,nullptr);    
+    return (unsigned int)free_t;
+}
+
+__host__ unsigned int calculateLargestPossibleMatrixDimension(){
+    unsigned int free = getFreeGpuMem();
+    unsigned int memoryPerMatrix = free  / (sizeof(int) * 3);
+    unsigned int maxMatrixDimension = sqrt( memoryPerMatrix ) - 1;
+    return maxMatrixDimension;
+}
+
 int main(int argc, char** argv) {
 
     comptuationDevice computeDev = dev_both; 
@@ -139,10 +155,12 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--device=cpu")==0)  computeDev = dev_cpu;
     }
 
-    printf("Device Config: %d", computeDev);
-
-    for (int i = 16; i < 8193*10; i*=2 )
+    unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
+    for (int i = 16; i != maxMatrixDimension*2; i*=2 ) {
+        if (i > maxMatrixDimension)
+            i = maxMatrixDimension;
         testMatrixMultiplicationPreformance(i, computeDev);
+    }
 
 	return 0;
 }
