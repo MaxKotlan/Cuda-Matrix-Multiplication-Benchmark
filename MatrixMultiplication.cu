@@ -17,6 +17,7 @@ struct Startup{
     int seedValue = time(nullptr);
     int maxDimension = INT_MAX;
     int startDimension = 2;
+    int threadsPerBlock = 256;
 } startup;
 
 /*Matrix Datastructure*/
@@ -53,27 +54,17 @@ __host__ void multiplyMatrices(squareMatrix a, squareMatrix b, squareMatrix resu
     }
 }
 
-__device__ int getGlobalIdx_3D_1D(){
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
-    int threadId = blockId * blockDim.x + threadIdx.x;
-    return threadId;
-}
-
 __global__ void multiplyMatricesParallel(int* mat_a, int* mat_b, int* mat_results, int dimension){
-    int idx = getGlobalIdx_3D_1D();
-    //int idx = blockDim.x * (blockIdx.x + blockIdx.y*gridDim.x) + threadIdx.x;
-    //int idx = threadIdx.x + threadIdx.x * blockDim.x + threadIdx.x * blockDim.x * blockDim.y;
+
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx < dimension*dimension){
-        //mat_results[idx] = 0;
-        //for (int i = 0; i < dimension; i++){
-        //    mat_results[idx] += mat_a[i + idx/dimension] * mat_b[idx%dimension + dimension*i];
-        //}
-        mat_results[idx] = idx;
+        mat_results[idx] = 0;
+        for (int i = 0; i < dimension; i++){
+            int row = idx / dimension;
+            mat_results[idx] += mat_a[i +  dimension*row] * mat_b[idx%dimension + dimension*i];
+        }
     }
-    //for (int i = 0; i < blockDim.x; i++){
-    //    mat_results[idx] += mat_a[i + blockDim.x * threadIdx.y] * mat_b[threadIdx.x + blockDim.x * i];
-    //}
 }
 
 __host__ void printMatrixInfo(int dimension, char* type){
@@ -151,11 +142,10 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
         gpuErrchk(cudaMemcpy(dev_mat_b, mat_b.elements, allocationsize, cudaMemcpyHostToDevice));
     printTime(clock() - before);
 
-
     printf("\tComputing and Copying Result...                  ");
     before = clock();
-        const int threadsPerBlock = 4;
-        multiplyMatricesParallel<<<dim3(3,3,4), threadsPerBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
+        int totalThreadsNeeded = mat_a.dimension*mat_a.dimension;
+        multiplyMatricesParallel<<<totalThreadsNeeded / startup.threadsPerBlock + 1, startup.threadsPerBlock>>> (dev_mat_a, dev_mat_b, dev_mat_results, mat_a.dimension);
         gpuErrchk(cudaGetLastError());
         gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
     printTime(clock() - before);
@@ -163,7 +153,7 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     //for (int i = 0; i < 10; i++){
     //    printf("%d ", mat_results.elements[mat_results.dimension*mat_results.dimension - 10 + i]);
     //}
-    printSquareMatrix(mat_results);
+    //printSquareMatrix(mat_results);
 
     printf("\tDeallocating Result Matrix...                    ");
     before = clock();
@@ -219,6 +209,7 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--max_dimension")==0 && i+1 < argc) startup.maxDimension = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--seed")==0 && i+1 < argc) startup.seedValue = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--start_dimension")==0 && i+1 < argc) startup.startDimension = atoi(argv[i+1]);
+        if (strcmp(argv[i],  "--block_threads")==0 && i+1 < argc) startup.threadsPerBlock = atoi(argv[i+1]);
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
