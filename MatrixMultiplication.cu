@@ -18,6 +18,7 @@ struct Startup{
     int maxDimension = INT_MAX;
     int startDimension = 2;
     int threadsPerBlock = 256;
+    bool debugPrint = false;
 } startup;
 
 /*Matrix Datastructure*/
@@ -153,7 +154,9 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
     //for (int i = 0; i < 10; i++){
     //    printf("%d ", mat_results.elements[mat_results.dimension*mat_results.dimension - 10 + i]);
     //}
-    //printSquareMatrix(mat_results);
+    if (startup.debugPrint) {
+        printSquareMatrix(mat_results);
+    }
 
     printf("\tDeallocating Result Matrix...                    ");
     before = clock();
@@ -174,8 +177,10 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     mat_a = createRandomSquareMatrix(dimension);
     mat_b = createRandomSquareMatrix(dimension);
 
-    //printSquareMatrix(mat_a);
-    //printSquareMatrix(mat_b);
+    if (startup.debugPrint) {
+        printSquareMatrix(mat_a);
+        printSquareMatrix(mat_b);
+    }
 
     if (startup.device != dev_cpu) testDevicePreformance(mat_a, mat_b);
     if (startup.device != dev_gpu) testHostPreformance(mat_a, mat_b);
@@ -210,6 +215,8 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--seed")==0 && i+1 < argc) startup.seedValue = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--start_dimension")==0 && i+1 < argc) startup.startDimension = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--block_threads")==0 && i+1 < argc) startup.threadsPerBlock = atoi(argv[i+1]);
+        if (strcmp(argv[i],  "--debug_print")==0) startup.debugPrint = true;
+
     }
 
     unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
