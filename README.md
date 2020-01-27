@@ -39,5 +39,7 @@ prints out matrix a, b and result to console.
 (Not reccomened for matrices with large number of elements)
 	--debug_print
 
-	
 ```
+
+### RESULTS 
+[GPU RESULTS](GPU-RESULTS.md)
