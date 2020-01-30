@@ -18,6 +18,7 @@ struct Startup{
     int maxDimension = INT_MAX;
     int startDimension = 2;
     int threadsPerBlock = 256;
+    int onlyMatrixSize = NULL;
     bool debugPrint = false;
 } startup;
 
@@ -203,6 +204,15 @@ __host__ unsigned int calculateLargestPossibleMatrixDimension(){
     return maxMatrixDimension;
 }
 
+__host__ void saveResultsToFile(){
+    FILE* fp;
+    fp = fopen( "results/gpu_results.txt", "w");
+    if (fp == nullptr) printf("Could not log to file\n");
+    else {
+        fprintf(fp, "Hello World" );
+    }
+}
+
 int main(int argc, char** argv) {
 
     for (int i = 0; i < argc; i++){
@@ -214,17 +224,24 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--max_dimension")==0 && i+1 < argc) startup.maxDimension = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--seed")==0 && i+1 < argc) startup.seedValue = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--start_dimension")==0 && i+1 < argc) startup.startDimension = atoi(argv[i+1]);
+        if (strcmp(argv[i],  "--only")==0 && i+1 < argc) startup.onlyMatrixSize = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--block_threads")==0 && i+1 < argc) startup.threadsPerBlock = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--debug_print")==0) startup.debugPrint = true;
-
     }
 
-    unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
-    for (int i = startup.startDimension; i != maxMatrixDimension*2 && i < startup.maxDimension; i*=2 ) {
-        maxMatrixDimension = calculateLargestPossibleMatrixDimension();
-        if (i > maxMatrixDimension)
-            i = maxMatrixDimension;
-        testMatrixMultiplicationPreformance(i);
+    /*Tests only one matrix if parameter passed in*/
+    if (startup.onlyMatrixSize != NULL)
+        testMatrixMultiplicationPreformance(startup.onlyMatrixSize);
+
+    /*Otherwise, double matrix size until vram is completely filled*/
+    else { 
+        unsigned int maxMatrixDimension = calculateLargestPossibleMatrixDimension();
+        for (int i = startup.startDimension; i != maxMatrixDimension*2 && i <= startup.maxDimension; i*=2 ) {
+            maxMatrixDimension = calculateLargestPossibleMatrixDimension();
+            if (i > maxMatrixDimension)
+                i = maxMatrixDimension;
+            testMatrixMultiplicationPreformance(i);
+        }
     }
     
 	return 0;
