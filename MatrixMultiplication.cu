@@ -31,6 +31,7 @@ struct squareMatrix{
     int dimension;
 };
 
+
 __host__ squareMatrix createRandomSquareMatrix(int dimension){
     int  mat_elements = dimension * dimension;
     int* mat = (int*)malloc(sizeof(int)*mat_elements);
@@ -84,7 +85,7 @@ __host__ void saveMatrixToFile(squareMatrix mat_sav, char* label){
     char dim[30];
     itoa(mat_sav.dimension,dim,10);
 
-    snprintf(fileNameBuffer, sizeof fileNameBuffer, "%s/%sx%s_X_%sx%s_%s", startup.outputDirectory, dim, dim, dim, dim, label, ".txt");
+    snprintf(fileNameBuffer, sizeof fileNameBuffer, "%s/%sx%s_X_%sx%s_%s.txt", startup.outputDirectory, dim, dim, dim, dim, label);
     
     FILE* fp = fopen( fileNameBuffer, "w");
     if (fp == nullptr) printf("Could not log to file\n");
@@ -131,6 +132,14 @@ __host__ void testHostPreformance(squareMatrix mat_a, squareMatrix mat_b){
     printf("\tPreforming Multiplication...                     ");
     multiplyMatrices(mat_a, mat_b, mat_results);
     printTime(clock() - before);
+
+    if (startup.matPrint) printSquareMatrix(mat_results);
+    if (startup.matSave)  {
+        printf("\tSaving Result Matrix to Disk...                  ");
+        before = clock();
+        saveMatrixToFile(mat_results, "matrix_result");
+        printTime(clock() - before);
+    }
 
     printf("\tDeallocating Result Matrix From Ram...           ");
     before = clock();
