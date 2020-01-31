@@ -2,6 +2,7 @@
 #include <cuda.h>
 //#include <cuda_runtime.h>
 //#include <curand_kernel.h>
+#include <string.h>
 #include <time.h>
 
 enum comptuationDevice{
@@ -19,7 +20,9 @@ struct Startup{
     int startDimension = 2;
     int threadsPerBlock = 256;
     int onlyMatrixSize = NULL;
-    bool debugPrint = false;
+    char* outputDirectory = "";
+    bool matSave  = false;
+    bool matPrint = false;
 } startup;
 
 /*Matrix Datastructure*/
@@ -73,6 +76,28 @@ __host__ void printMatrixInfo(int dimension, char* type){
     printf("--------------------------------------------------------------------------------------------\nMultiplying %dx%d X %dx%d using the %s ...\n\n", 
     dimension, dimension, dimension, dimension, type);
 }
+
+__host__ void saveMatrixToFile(squareMatrix mat_sav, char* label){
+
+    char fileNameBuffer[256];
+
+    char dim[30];
+    itoa(mat_sav.dimension,dim,10);
+
+    snprintf(fileNameBuffer, sizeof fileNameBuffer, "%s%sx%s_X_%sx%s_%s", startup.outputDirectory, dim, dim, dim, dim, label, ".txt");
+    
+    FILE* fp = fopen( fileNameBuffer, "w");
+    if (fp == nullptr) printf("Could not log to file\n");
+    else {
+        for (int i = 0; i < mat_sav.dimension*mat_sav.dimension; i++){
+            if (i % mat_sav.dimension == 0 && i != 0) fprintf(fp, "\n");
+            fprintf(fp, "%d ", mat_sav.elements[i]);
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+
 
 __host__ void printTime(clock_t totaltime){
     int msec = totaltime * 1000 / CLOCKS_PER_SEC;
@@ -152,12 +177,9 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
         gpuErrchk(cudaMemcpy(mat_results.elements, dev_mat_results, allocationsize, cudaMemcpyDeviceToHost));
     printTime(clock() - before);
 
-    //for (int i = 0; i < 10; i++){
-    //    printf("%d ", mat_results.elements[mat_results.dimension*mat_results.dimension - 10 + i]);
-    //}
-    if (startup.debugPrint) {
-        printSquareMatrix(mat_results);
-    }
+
+    if (startup.matPrint) printSquareMatrix(mat_results);
+    if (startup.matSave)  saveMatrixToFile(mat_results, "matrix_result");
 
     printf("\tDeallocating Result Matrix...                    ");
     before = clock();
@@ -178,7 +200,7 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     mat_a = createRandomSquareMatrix(dimension);
     mat_b = createRandomSquareMatrix(dimension);
 
-    if (startup.debugPrint) {
+    if (startup.matPrint) {
         printSquareMatrix(mat_a);
         printSquareMatrix(mat_b);
     }
@@ -204,15 +226,6 @@ __host__ unsigned int calculateLargestPossibleMatrixDimension(){
     return maxMatrixDimension;
 }
 
-__host__ void saveResultsToFile(){
-    FILE* fp;
-    fp = fopen( "results/gpu_results.txt", "w");
-    if (fp == nullptr) printf("Could not log to file\n");
-    else {
-        fprintf(fp, "Hello World" );
-    }
-}
-
 int main(int argc, char** argv) {
 
     for (int i = 0; i < argc; i++){
@@ -226,7 +239,12 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--start_dimension")==0 && i+1 < argc) startup.startDimension = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--only")==0 && i+1 < argc) startup.onlyMatrixSize = atoi(argv[i+1]);
         if (strcmp(argv[i],  "--block_threads")==0 && i+1 < argc) startup.threadsPerBlock = atoi(argv[i+1]);
-        if (strcmp(argv[i],  "--debug_print")==0) startup.debugPrint = true;
+        if (strcmp(argv[i],  "--mat_print")==0) startup.matPrint = true;
+        if (strcmp(argv[i],  "--mat_save")==0){ 
+            startup.matSave = true;
+            if   (i+1 < argc && strstr(argv[i+1], "--") == NULL) startup.outputDirectory = argv[i+1];
+            else startup.outputDirectory = "";
+        }
     }
 
     /*Tests only one matrix if parameter passed in*/
