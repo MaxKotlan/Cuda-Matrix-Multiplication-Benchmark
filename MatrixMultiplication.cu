@@ -31,6 +31,28 @@ struct squareMatrix{
     int dimension;
 };
 
+const char* help =
+"\n Shows what parameters are available\n\
+\t--help\n\n\
+ Selects which device should be used:\n\
+\t--device cpu\n\
+\t--device gpu\n\
+\t--device both\n\n\
+ sets seedvalue for random number generation (default: currentTime)\n\
+\t--seed [int]\n\n\
+ sets mod value for random number generation (default: 2)\n\
+\t--random_mod [int]\n\n\
+ sets max dimension to compute (default: max matrix that can fit in vram)\n\
+\t--max_dimension [int]\n\n\
+ sets starting matrix dimension (default: 2)\n\
+\t--start_dimension [int]\n\n\
+ only computes a single matrix of n size.\n\
+\t--only [int]\n\n\
+ sets number of threads per block (default: 256). Should be a multiple of cuda cores\n\
+\t--block_threads [int 1-1024]\n\n\
+ outputs matrix a, b and result. (not reccomented for extremely large matrices)\n\
+\t--mat_print                    (prints to the console)\n\
+\t--mat_save [filepath]          (saves to disk. filepath optional)\n\n";
 
 __host__ squareMatrix createRandomSquareMatrix(int dimension){
     int  mat_elements = dimension * dimension;
@@ -248,6 +270,7 @@ __host__ unsigned int calculateLargestPossibleMatrixDimension(){
 int main(int argc, char** argv) {
 
     for (int i = 0; i < argc; i++){
+        if (strcmp(argv[i],  "--help")==0) {printf("%s", help); exit(-1); }
         if (strcmp(argv[i],  "--device")==0 && i+1 < argc) 
             if (strcmp(argv[i+1], "gpu") == 0) startup.device = dev_gpu;
             else if (strcmp(argv[i+1], "cpu") == 0) startup.device = dev_cpu;
