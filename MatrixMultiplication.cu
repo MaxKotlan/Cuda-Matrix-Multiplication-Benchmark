@@ -20,7 +20,7 @@ struct Startup{
     int startDimension = 2;
     int threadsPerBlock = 256;
     int onlyMatrixSize = NULL;
-    char* outputDirectory = "";
+    char* outputDirectory = ".";
     bool matSave  = false;
     bool matPrint = false;
 } startup;
@@ -84,7 +84,7 @@ __host__ void saveMatrixToFile(squareMatrix mat_sav, char* label){
     char dim[30];
     itoa(mat_sav.dimension,dim,10);
 
-    snprintf(fileNameBuffer, sizeof fileNameBuffer, "%s%sx%s_X_%sx%s_%s", startup.outputDirectory, dim, dim, dim, dim, label, ".txt");
+    snprintf(fileNameBuffer, sizeof fileNameBuffer, "%s/%sx%s_X_%sx%s_%s", startup.outputDirectory, dim, dim, dim, dim, label, ".txt");
     
     FILE* fp = fopen( fileNameBuffer, "w");
     if (fp == nullptr) printf("Could not log to file\n");
@@ -179,7 +179,12 @@ __host__ void testDevicePreformance(squareMatrix mat_a, squareMatrix mat_b){
 
 
     if (startup.matPrint) printSquareMatrix(mat_results);
-    if (startup.matSave)  saveMatrixToFile(mat_results, "matrix_result");
+    if (startup.matSave)  {
+        printf("\tSaving Result Matrix to Disk...                  ");
+        before = clock();
+        saveMatrixToFile(mat_results, "matrix_result");
+        printTime(clock() - before);
+    }
 
     printf("\tDeallocating Result Matrix...                    ");
     before = clock();
@@ -203,6 +208,11 @@ __host__ void testMatrixMultiplicationPreformance(int dimension){
     if (startup.matPrint) {
         printSquareMatrix(mat_a);
         printSquareMatrix(mat_b);
+    }
+
+    if (startup.matSave) {
+        saveMatrixToFile(mat_a, "matrix_A");
+        saveMatrixToFile(mat_b, "matrix_B");
     }
 
     if (startup.device != dev_cpu) testDevicePreformance(mat_a, mat_b);
@@ -243,7 +253,6 @@ int main(int argc, char** argv) {
         if (strcmp(argv[i],  "--mat_save")==0){ 
             startup.matSave = true;
             if   (i+1 < argc && strstr(argv[i+1], "--") == NULL) startup.outputDirectory = argv[i+1];
-            else startup.outputDirectory = "";
         }
     }
 
