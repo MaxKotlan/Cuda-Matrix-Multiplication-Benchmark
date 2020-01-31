@@ -52,6 +52,7 @@ The following are the available command-line arguments
         --mat_save [filepath]          (saves to disk. filepath optional)
 ```
 
-### PREFORMANCE RESULTS
+### PERFORMANCE RESULTS
 [MY GPU RESULTS](GPU-RESULTS.md)
+
 [MY CPU RESULTS](CPU-RESULTS.md)
