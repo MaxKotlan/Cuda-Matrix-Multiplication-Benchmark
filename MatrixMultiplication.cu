@@ -48,9 +48,9 @@ const char* help =
 \t--start_dimension [int]\n\n\
  only computes a single matrix of n size.\n\
 \t--only [int]\n\n\
- sets number of threads per block (default: 256). Should be a multiple of cuda cores\n\
+ sets the number of threads per block (default: 256). Should be a multiple of cuda cores\n\
 \t--block_threads [int 1-1024]\n\n\
- outputs matrix a, b and result. (not reccomented for extremely large matrices)\n\
+ outputs matrix a, b and result. (not recommended for extremely large matrices)\n\
 \t--mat_print                    (prints to the console)\n\
 \t--mat_save [filepath]          (saves to disk. filepath optional)\n\n";
 
