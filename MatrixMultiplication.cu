@@ -105,7 +105,8 @@ __host__ void saveMatrixToFile(squareMatrix mat_sav, char* label){
     char fileNameBuffer[256];
 
     char dim[30];
-    itoa(mat_sav.dimension,dim,10);
+
+    snprintf(dim, 10,"%d", mat_sav.dimension);
 
     snprintf(fileNameBuffer, sizeof fileNameBuffer, "%s/%sx%s_X_%sx%s_%s.txt", startup.outputDirectory, dim, dim, dim, dim, label);
     
